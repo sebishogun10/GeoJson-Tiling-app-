@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.3
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_HTTP_PORT=8180
+    ports:
+      - "8180:8180"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import
+    command: 
+      - start-dev
+      - --http-port=8180
+      - --import-realm

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tile Generator</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; }
+        #geojsonInput { width: 100%; height: 200px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div id="loginForm">
+        <h2>Login</h2>
+        <button onclick="login()">Login with Keycloak</button>
+    </div>
+
+    <div id="mainContent" class="hidden">
+        <h2>Tile Generator</h2>
+        <textarea id="geojsonInput" placeholder="Enter GeoJSON here..."></textarea>
+        <button onclick="generateTiles()">Generate Tiles</button>
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let map;
+        let accessToken;
+        let tilesLayer;
+
+        function initMap() {
+            map = L.map('map').setView([0, 0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        async function login() {
+            window.location.href = 'http://localhost:8180/realms/polygon-tiling/protocol/openid-connect/auth?' +
+                'client_id=tile-client&' +
+                'redirect_uri=' + encodeURIComponent(window.location.origin) + '&' +
+                'response_type=token&' +
+                'scope=openid';
+        }
+
+        function handleAuthentication() {
+            const hash = window.location.hash;
+            if (hash) {
+                const match = hash.match(/access_token=([^&]*)/);
+                if (match) {
+                    accessToken = match[1];
+                    document.getElementById('loginForm').classList.add('hidden');
+                    document.getElementById('mainContent').classList.remove('hidden');
+                    initMap();
+                }
+            }
+        }
+
+        async function generateTiles() {
+            const geojson = document.getElementById('geojsonInput').value;
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/v1/tiles', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: geojson
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const tiles = await response.json();
+                
+                if (tilesLayer) {
+                    map.removeLayer(tilesLayer);
+                }
+                
+                tilesLayer = L.geoJSON(tiles).addTo(map);
+                map.fitBounds(tilesLayer.getBounds());
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error generating tiles: ' + error.message);
+            }
+        }
+
+        // Check for authentication on page load
+        handleAuthentication();
+    </script>
+</body>
+</html>
