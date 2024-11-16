@@ -2,10 +2,12 @@
 <html>
   <head>
     <title>Tile Viewer</title>
+    <!-- Leaflet CSS -->
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
+    <!-- Tailwind CSS -->
     <link
       href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
       rel="stylesheet"
@@ -43,17 +45,17 @@
             placeholder="Enter GeoJSON here..."
           >
 {
-    "type": "Feature",
-    "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-            [-2.2487, 53.4808],
-            [-2.2487, 53.4858],
-            [-2.2387, 53.4858],
-            [-2.2387, 53.4808],
-            [-2.2487, 53.4808]
-        ]]
-    }
+  "type": "Feature",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [-2.2487, 53.4808],
+      [-2.2487, 53.4858],
+      [-2.2387, 53.4858],
+      [-2.2387, 53.4808],
+      [-2.2487, 53.4808]
+    ]]
+  }
 }</textarea
           >
         </div>
@@ -87,11 +89,17 @@
       ></div>
     </div>
 
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Turf.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <!-- Leaflet.VectorGrid -->
+    <script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.js"></script>
 
     <script>
       let map, token;
       let renderedFeatures = [];
+      let vectorGridLayer;
 
       function initMap() {
         map = L.map("map").setView([53.4808, -2.2487], 13);
@@ -142,10 +150,13 @@
         ).textContent = `Total tiles: ${renderedFeatures.length}`;
 
         if (renderedFeatures.length > 0) {
-          const bounds = L.geoJSON({
+          const bbox = turf.bbox({
             type: "FeatureCollection",
             features: renderedFeatures,
-          }).getBounds();
+          });
+          const southWest = L.latLng(bbox[1], bbox[0]);
+          const northEast = L.latLng(bbox[3], bbox[2]);
+          const bounds = L.latLngBounds(southWest, northEast);
           map.fitBounds(bounds);
         }
       }
@@ -177,20 +188,30 @@
             if (data && data.features) {
               renderedFeatures = data.features;
 
-              map.eachLayer((layer) => {
-                if (layer instanceof L.GeoJSON) {
-                  map.removeLayer(layer);
-                }
-              });
+              if (vectorGridLayer) {
+                map.removeLayer(vectorGridLayer);
+                vectorGridLayer = null;
+              }
 
-              L.geoJSON(data, {
-                style: {
-                  color: "#FF4444",
-                  weight: 1,
-                  opacity: 0.8,
-                  fillOpacity: 0.2,
-                },
-              }).addTo(map);
+              vectorGridLayer = L.vectorGrid
+                .slicer(data, {
+                  rendererFactory: L.canvas.tile,
+                  vectorTileLayerStyles: {
+                    sliced: {
+                      weight: 1,
+                      color: "#FF4444",
+                      fillColor: "#FF4444",
+                      fillOpacity: 0.2,
+                    },
+                  },
+                  interactive: true,
+                  maxZoom: 19,
+                })
+                .addTo(map);
+
+              vectorGridLayer.on("click", function (e) {
+                console.log("Clicked on feature:", e.layer.properties);
+              });
 
               finishLoading();
             }
@@ -199,6 +220,7 @@
             document.getElementById(
               "stats"
             ).textContent = `Error: ${error.message}`;
+            document.getElementById("loadingOverlay").classList.add("hidden");
           }
         });
 
