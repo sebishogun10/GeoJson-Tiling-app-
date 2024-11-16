@@ -1,97 +1,211 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Tile Generator</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <head>
+    <title>Tile Viewer</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
     <style>
-        #map { height: 600px; }
-        #geojsonInput { width: 100%; height: 200px; }
-        .hidden { display: none; }
+      #map {
+        height: 800px;
+        width: 100%;
+      }
+      .loading-overlay {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(5px);
+      }
     </style>
-</head>
-<body>
-    <div id="loginForm">
-        <h2>Login</h2>
-        <button onclick="login()">Login with Keycloak</button>
-    </div>
+  </head>
+  <body class="bg-gray-100">
+    <div class="container mx-auto p-4">
+      <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+        <h1 class="text-2xl font-bold mb-4">Tile Viewer</h1>
 
-    <div id="mainContent" class="hidden">
-        <h2>Tile Generator</h2>
-        <textarea id="geojsonInput" placeholder="Enter GeoJSON here..."></textarea>
-        <button onclick="generateTiles()">Generate Tiles</button>
+        <div id="loginSection" class="mb-4">
+          <button
+            onclick="login()"
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
+            Login with Keycloak
+          </button>
+          <span id="loginStatus" class="ml-2"></span>
+        </div>
+
+        <div class="mb-4">
+          <textarea
+            id="geoJsonInput"
+            class="w-full h-32 p-2 border rounded"
+            placeholder="Enter GeoJSON here..."
+          >
+{
+    "type": "Feature",
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+            [-2.2487, 53.4808],
+            [-2.2487, 53.4858],
+            [-2.2387, 53.4858],
+            [-2.2387, 53.4808],
+            [-2.2487, 53.4808]
+        ]]
+    }
+}</textarea
+          >
+        </div>
+
+        <button
+          id="generateBtn"
+          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          disabled
+        >
+          Generate Tiles
+        </button>
+      </div>
+
+      <div class="relative bg-white rounded-lg shadow-lg">
         <div id="map"></div>
+
+        <div
+          id="loadingOverlay"
+          class="hidden loading-overlay absolute inset-0 flex items-center justify-center"
+        >
+          <div class="text-center">
+            <div class="loader mb-2">Loading...</div>
+            <div id="progress" class="text-lg"></div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        id="stats"
+        class="fixed top-4 right-4 bg-white p-4 rounded-lg shadow-lg"
+      ></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
-        let map;
-        let accessToken;
-        let tilesLayer;
+      let map, token;
+      let renderedFeatures = [];
 
-        function initMap() {
-            map = L.map('map').setView([0, 0], 2);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+      function initMap() {
+        map = L.map("map").setView([53.4808, -2.2487], 13);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "© OpenStreetMap contributors",
+        }).addTo(map);
+      }
+
+      function login() {
+        const nonce = Math.random().toString(36);
+        localStorage.setItem("nonce", nonce);
+
+        window.location.href =
+          "http://localhost:8180/realms/polygon-tiling/protocol/openid-connect/auth" +
+          "?response_type=token" +
+          "&client_id=tile-client" +
+          "&redirect_uri=" +
+          encodeURIComponent(window.location.origin) +
+          "&scope=openid profile" +
+          "&nonce=" +
+          nonce;
+      }
+
+      function checkToken() {
+        if (window.location.hash) {
+          const match = window.location.hash.match(/access_token=([^&]*)/);
+          if (match) {
+            token = match[1];
+            document.getElementById("loginStatus").textContent =
+              "Logged in successfully";
+            document.getElementById("generateBtn").disabled = false;
+            return true;
+          }
         }
+        return false;
+      }
 
-        async function login() {
-            window.location.href = 'http://localhost:8180/realms/polygon-tiling/protocol/openid-connect/auth?' +
-                'client_id=tile-client&' +
-                'redirect_uri=' + encodeURIComponent(window.location.origin) + '&' +
-                'response_type=token&' +
-                'scope=openid';
+      function startLoading() {
+        document.getElementById("loadingOverlay").classList.remove("hidden");
+        renderedFeatures = [];
+      }
+
+      function finishLoading() {
+        document.getElementById("loadingOverlay").classList.add("hidden");
+        document.getElementById(
+          "stats"
+        ).textContent = `Total tiles: ${renderedFeatures.length}`;
+
+        if (renderedFeatures.length > 0) {
+          const bounds = L.geoJSON({
+            type: "FeatureCollection",
+            features: renderedFeatures,
+          }).getBounds();
+          map.fitBounds(bounds);
         }
+      }
 
-        function handleAuthentication() {
-            const hash = window.location.hash;
-            if (hash) {
-                const match = hash.match(/access_token=([^&]*)/);
-                if (match) {
-                    accessToken = match[1];
-                    document.getElementById('loginForm').classList.add('hidden');
-                    document.getElementById('mainContent').classList.remove('hidden');
-                    initMap();
-                }
+      document
+        .getElementById("generateBtn")
+        .addEventListener("click", async () => {
+          const geoJson = document.getElementById("geoJsonInput").value;
+          if (!geoJson || !token) return;
+
+          startLoading();
+
+          try {
+            const response = await fetch("/api/v1/tiles", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: geoJson,
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
             }
-        }
 
-        async function generateTiles() {
-            const geojson = document.getElementById('geojsonInput').value;
-            
-            try {
-                const response = await fetch('http://localhost:8080/api/v1/tiles', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                    },
-                    body: geojson
-                });
+            const data = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+            if (data && data.features) {
+              renderedFeatures = data.features;
+
+              map.eachLayer((layer) => {
+                if (layer instanceof L.GeoJSON) {
+                  map.removeLayer(layer);
                 }
+              });
 
-                const tiles = await response.json();
-                
-                if (tilesLayer) {
-                    map.removeLayer(tilesLayer);
-                }
-                
-                tilesLayer = L.geoJSON(tiles).addTo(map);
-                map.fitBounds(tilesLayer.getBounds());
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error generating tiles: ' + error.message);
+              L.geoJSON(data, {
+                style: {
+                  color: "#FF4444",
+                  weight: 1,
+                  opacity: 0.8,
+                  fillOpacity: 0.2,
+                },
+              }).addTo(map);
+
+              finishLoading();
             }
-        }
+          } catch (error) {
+            console.error("Error:", error);
+            document.getElementById(
+              "stats"
+            ).textContent = `Error: ${error.message}`;
+          }
+        });
 
-        // Check for authentication on page load
-        handleAuthentication();
+      initMap();
+      if (!checkToken()) {
+        document.getElementById("loginStatus").textContent = "Please log in";
+      }
     </script>
-</body>
+  </body>
 </html>

@@ -1,5 +1,6 @@
 package com.example.tilingservice.controller;
 
+import com.example.tilingservice.service.AsyncTileRenderer;
 import com.example.tilingservice.service.TileService;
 import com.example.tilingservice.tile.Tile;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +22,7 @@ import java.util.List;
 public class TilingController {
 
     private final TileService tileService;
+    private final AsyncTileRenderer asyncTileRenderer;
 
     @PostMapping("/tiles")
     @Operation(
@@ -33,7 +35,8 @@ public class TilingController {
             @AuthenticationPrincipal Jwt jwt) {
         
         List<Tile> tiles = tileService.generateTiles(geoJson);
-        String response = tileService.generateGeoJson(tiles);
+        // String response = tileService.generateGeoJson(tiles);
+        String response = asyncTileRenderer.renderTilesAsync(tiles);
         
         return ResponseEntity.ok(response);
     }
