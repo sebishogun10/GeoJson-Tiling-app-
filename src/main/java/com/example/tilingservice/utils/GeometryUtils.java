@@ -1,5 +1,6 @@
 package com.example.tilingservice.utils;
 
+import com.example.tilingservice.model.BoundingBox;
 import com.example.tilingservice.model.Point;
 import java.util.List;
 
@@ -47,4 +48,26 @@ public class GeometryUtils {
 
         return R * c;
     }
+
+    public static double calculateAreaInMeters(BoundingBox box) {
+        Point sw = box.getSouthWest();
+        Point ne = box.getNorthEast();
+   
+   // Haversine formula components
+        double dLat = Math.toRadians(ne.getLatitude() - sw.getLatitude());
+        double dLon = Math.toRadians(ne.getLongitude() - sw.getLongitude());
+        double lat1 = Math.toRadians(sw.getLatitude());
+        double lat2 = Math.toRadians(ne.getLatitude());
+   
+   // Earth's radius in meters
+        double R = 6371e3;
+   
+   // Calculate width and height in meters
+        double width = R * Math.cos(lat1) * dLon;
+        double height = R * dLat;
+   
+        return Math.abs(width * height);
+}
+
+
 }

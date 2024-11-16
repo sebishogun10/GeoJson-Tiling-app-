@@ -4,6 +4,7 @@ import com.example.tilingservice.geojson.Parser;
 import com.example.tilingservice.model.Point;
 import com.example.tilingservice.model.PolygonShape;
 import com.example.tilingservice.rtree.RTree;
+import com.example.tilingservice.rtree.RTreeSerializer;
 import com.example.tilingservice.tile.Tile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,11 +29,14 @@ class TileServiceTest {
     @Mock
     private RTree rtree;
 
+    @Mock
+    private RTreeSerializer rTreeSerializer;
+
     private TileService tileService;
 
     @BeforeEach
     void setUp() {
-        tileService = new TileService(geoJsonParser, rtree);
+        tileService = new TileService(geoJsonParser, rTreeSerializer);
         ReflectionTestUtils.setField(tileService, "errorMargin", 0.01);
         ReflectionTestUtils.setField(tileService, "maxRecursionDepth", 10);
     }

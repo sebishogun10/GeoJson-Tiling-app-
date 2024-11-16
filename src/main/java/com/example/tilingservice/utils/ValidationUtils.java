@@ -12,13 +12,18 @@ public class ValidationUtils {
         // Check if the polygon is closed
         Point first = polygon.get(0);
         Point last = polygon.get(polygon.size() - 1);
-        if (first.getLatitude() != last.getLatitude() || 
-            first.getLongitude() != last.getLongitude()) {
+        
+        if (!isPointsEqual(first, last)) {
             return false;
         }
 
-        // Check for self-intersections
         return !hasSelfIntersections(polygon);
+    }
+
+    private static boolean isPointsEqual(Point p1, Point p2) {
+        double epsilon = 1e-10;
+        return Math.abs(p1.getLatitude() - p2.getLatitude()) < epsilon && 
+               Math.abs(p1.getLongitude() - p2.getLongitude()) < epsilon;
     }
 
     private static boolean hasSelfIntersections(List<Point> polygon) {
@@ -40,15 +45,15 @@ public class ValidationUtils {
         double d3 = direction(p1, p2, p3);
         double d4 = direction(p1, p2, p4);
 
-        if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
-            ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
-            return true;
-        }
+        double epsilon = 1e-10;
 
-        return d1 == 0 && onSegment(p3, p4, p1) ||
-               d2 == 0 && onSegment(p3, p4, p2) ||
-               d3 == 0 && onSegment(p1, p2, p3) ||
-               d4 == 0 && onSegment(p1, p2, p4);
+        if (Math.abs(d1) < epsilon) return onSegment(p3, p4, p1);
+        if (Math.abs(d2) < epsilon) return onSegment(p3, p4, p2);
+        if (Math.abs(d3) < epsilon) return onSegment(p1, p2, p3);
+        if (Math.abs(d4) < epsilon) return onSegment(p1, p2, p4);
+
+        return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+               ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
     }
 
     private static double direction(Point pi, Point pj, Point pk) {

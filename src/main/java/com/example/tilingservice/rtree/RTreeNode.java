@@ -3,12 +3,16 @@ package com.example.tilingservice.rtree;
 import com.example.tilingservice.model.BoundingBox;
 import com.example.tilingservice.model.Point;
 import com.example.tilingservice.tile.Tile;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.Data;
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class RTreeNode {
+    private String id = java.util.UUID.randomUUID().toString();
     private BoundingBox boundingBox;
     private List<RTreeNode> children;
     private Tile tile;
@@ -18,6 +22,7 @@ public class RTreeNode {
     public RTreeNode() {
         this.children = new ArrayList<>();
         this.isLeaf = true;
+        this.boundingBox = new BoundingBox(new Point(0, 0), new Point(0, 0));
     }
 
     public void insert(Tile tile) {
@@ -29,8 +34,32 @@ public class RTreeNode {
                 children.add(node);
                 updateBoundingBox();
             } else {
-                split();
-                insert(tile);
+                List<RTreeNode> oldChildren = new ArrayList<>(children);
+                isLeaf = false;
+                children.clear();
+                
+                // Create two new leaf nodes
+                RTreeNode node1 = new RTreeNode();
+                RTreeNode node2 = new RTreeNode();
+                children.add(node1);
+                children.add(node2);
+                
+                // Redistribute old children
+                for (RTreeNode child : oldChildren) {
+                    if (node1.children.size() < MAX_ENTRIES/2) {
+                        node1.children.add(child);
+                    } else {
+                        node2.children.add(child);
+                    }
+                }
+                
+                node1.updateBoundingBox();
+                node2.updateBoundingBox();
+                
+                // Insert the new tile
+                RTreeNode bestChild = chooseBestChild(tile.getBoundingBox());
+                bestChild.insert(tile);
+                updateBoundingBox();
             }
         } else {
             RTreeNode bestChild = chooseBestChild(tile.getBoundingBox());
@@ -38,10 +67,10 @@ public class RTreeNode {
             updateBoundingBox();
         }
     }
-
     public List<Tile> search(BoundingBox searchBox) {
         List<Tile> results = new ArrayList<>();
-        if (boundingBox != null && !boundingBox.intersects(searchBox)) {
+        
+        if (boundingBox == null || !boundingBox.intersects(searchBox)) {
             return results;
         }
 
@@ -55,43 +84,6 @@ public class RTreeNode {
             }
         }
         return results;
-    }
-
-    private RTreeNode chooseBestChild(BoundingBox box) {
-        RTreeNode bestNode = null;
-        double minIncrease = Double.MAX_VALUE;
-
-        for (RTreeNode child : children) {
-            double increase = calculateBoundingBoxIncrease(child.getBoundingBox(), box);
-            if (increase < minIncrease) {
-                minIncrease = increase;
-                bestNode = child;
-            }
-        }
-
-        return bestNode != null ? bestNode : children.get(0);
-    }
-
-    private double calculateBoundingBoxIncrease(BoundingBox current, BoundingBox newBox) {
-        double currentArea = calculateArea(current);
-        
-        double minLat = Math.min(current.getSouthWest().getLatitude(), 
-                                newBox.getSouthWest().getLatitude());
-        double minLon = Math.min(current.getSouthWest().getLongitude(), 
-                                newBox.getSouthWest().getLongitude());
-        double maxLat = Math.max(current.getNorthEast().getLatitude(), 
-                                newBox.getNorthEast().getLatitude());
-        double maxLon = Math.max(current.getNorthEast().getLongitude(), 
-                                newBox.getNorthEast().getLongitude());
-        
-        double enlargedArea = Math.abs((maxLat - minLat) * (maxLon - minLon));
-        return enlargedArea - currentArea;
-    }
-
-    private double calculateArea(BoundingBox box) {
-        double latDiff = box.getNorthEast().getLatitude() - box.getSouthWest().getLatitude();
-        double lonDiff = box.getNorthEast().getLongitude() - box.getSouthWest().getLongitude();
-        return Math.abs(latDiff * lonDiff);
     }
 
     private void split() {
@@ -149,21 +141,44 @@ public class RTreeNode {
         updateBoundingBox();
     }
 
-    private double calculateDistance(BoundingBox box1, BoundingBox box2) {
-        Point center1 = calculateCenter(box1);
-        Point center2 = calculateCenter(box2);
-        
-        double latDiff = center1.getLatitude() - center2.getLatitude();
-        double lonDiff = center1.getLongitude() - center2.getLongitude();
-        
-        return Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
+    private RTreeNode chooseBestChild(BoundingBox box) {
+        RTreeNode bestNode = null;
+        double minIncrease = Double.MAX_VALUE;
+
+        for (RTreeNode child : children) {
+            double increase = calculateBoundingBoxIncrease(child.getBoundingBox(), box);
+            if (increase < minIncrease) {
+                minIncrease = increase;
+                bestNode = child;
+            }
+        }
+
+        return bestNode != null ? bestNode : children.get(0);
     }
 
-    private Point calculateCenter(BoundingBox box) {
-        return new Point(
-            (box.getSouthWest().getLatitude() + box.getNorthEast().getLatitude()) / 2,
-            (box.getSouthWest().getLongitude() + box.getNorthEast().getLongitude()) / 2
-        );
+    private double calculateBoundingBoxIncrease(BoundingBox current, BoundingBox newBox) {
+        if (current == null) return calculateArea(newBox);
+        
+        double currentArea = calculateArea(current);
+        
+        double minLat = Math.min(current.getSouthWest().getLatitude(), 
+                                newBox.getSouthWest().getLatitude());
+        double minLon = Math.min(current.getSouthWest().getLongitude(), 
+                                newBox.getSouthWest().getLongitude());
+        double maxLat = Math.max(current.getNorthEast().getLatitude(), 
+                                newBox.getNorthEast().getLatitude());
+        double maxLon = Math.max(current.getNorthEast().getLongitude(), 
+                                newBox.getNorthEast().getLongitude());
+        
+        double enlargedArea = Math.abs((maxLat - minLat) * (maxLon - minLon));
+        return enlargedArea - currentArea;
+    }
+
+    private double calculateArea(BoundingBox box) {
+        if (box == null) return 0;
+        double latDiff = box.getNorthEast().getLatitude() - box.getSouthWest().getLatitude();
+        double lonDiff = box.getNorthEast().getLongitude() - box.getSouthWest().getLongitude();
+        return Math.abs(latDiff * lonDiff);
     }
 
     private void updateBoundingBox() {
@@ -183,6 +198,23 @@ public class RTreeNode {
         this.boundingBox = new BoundingBox(
             new Point(minLat, minLon),
             new Point(maxLat, maxLon)
+        );
+    }
+
+    private double calculateDistance(BoundingBox box1, BoundingBox box2) {
+        Point center1 = calculateCenter(box1);
+        Point center2 = calculateCenter(box2);
+        
+        double latDiff = center1.getLatitude() - center2.getLatitude();
+        double lonDiff = center1.getLongitude() - center2.getLongitude();
+        
+        return Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
+    }
+
+    private Point calculateCenter(BoundingBox box) {
+        return new Point(
+            (box.getSouthWest().getLatitude() + box.getNorthEast().getLatitude()) / 2,
+            (box.getSouthWest().getLongitude() + box.getNorthEast().getLongitude()) / 2
         );
     }
 }
