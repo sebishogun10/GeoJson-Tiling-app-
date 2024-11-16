@@ -2,6 +2,10 @@ package com.example.tilingservice.model;
 
 import lombok.Data;
 import com.example.tilingservice.utils.GeometryUtils;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.LinearRing;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -68,5 +72,65 @@ public class PolygonShape implements Shape {
     @Override
     public BoundingBox getBoundingBox() {
         return boundingBox;
+    }
+
+    /**
+     * Checks if this polygon has any holes
+     * @return true if the polygon has one or more holes, false otherwise
+     */
+    public boolean hasHoles() {
+        return holes != null && !holes.isEmpty();
+    }
+
+    /**
+     * Gets the list of holes in this polygon
+     * @return List of holes, where each hole is a list of points
+     */
+    public List<List<Point>> getHoles() {
+        return holes;
+    }
+
+    /**
+     * Gets the outer boundary points of the polygon
+     * @return List of points forming the outer boundary
+     */
+    public List<Point> getOuterBoundary() {
+        return outerBoundary;
+    }
+
+    @Override
+    public Geometry toJtsGeometry(GeometryFactory geometryFactory) {
+        // Convert outer boundary to coordinates
+        Coordinate[] coordinates = new Coordinate[outerBoundary.size() + 1];
+        for (int i = 0; i < outerBoundary.size(); i++) {
+            Point point = outerBoundary.get(i);
+            coordinates[i] = new Coordinate(point.getLongitude(), point.getLatitude());
+        }
+        // Close the ring
+        coordinates[outerBoundary.size()] = coordinates[0];
+        
+        // Create the polygon ring
+        LinearRing ring = geometryFactory.createLinearRing(coordinates);
+        
+        // Handle holes
+        LinearRing[] holes = null;
+        if (hasHoles()) {
+            holes = new LinearRing[this.holes.size()];
+            
+            for (int i = 0; i < this.holes.size(); i++) {
+                List<Point> hole = this.holes.get(i);
+                Coordinate[] holeCoords = new Coordinate[hole.size() + 1];
+                
+                for (int j = 0; j < hole.size(); j++) {
+                    Point point = hole.get(j);
+                    holeCoords[j] = new Coordinate(point.getLongitude(), point.getLatitude());
+                }
+                holeCoords[hole.size()] = holeCoords[0]; // Close the hole ring
+                
+                holes[i] = geometryFactory.createLinearRing(holeCoords);
+            }
+        }
+        
+        return geometryFactory.createPolygon(ring, holes);
     }
 }

@@ -4,6 +4,10 @@ import com.example.tilingservice.model.BoundingBox;
 import com.example.tilingservice.model.Point;
 import lombok.Data;
 import java.util.List;
+
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Polygon;
+
 import java.util.ArrayList;
 
 @Data
@@ -92,5 +96,11 @@ public class RectangleTile implements Tile {
         
         sb.append("]]},\"properties\":{}}");
         return sb.toString();
+    }
+
+    @Override
+    public Polygon toJtsPolygon(GeometryFactory geometryFactory) {
+        // Use the default implementation from the interface
+        return createJtsPolygon(geometryFactory);
     }
 }

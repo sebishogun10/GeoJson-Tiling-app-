@@ -24,4 +24,18 @@ public class BoundingBox {
                 other.getNorthEast().getLatitude() < this.getSouthWest().getLatitude() ||
                 other.getSouthWest().getLatitude() > this.getNorthEast().getLatitude());
     }
+
+    public BoundingBox union(BoundingBox other) {
+        double minLat = Math.min(this.southWest.getLatitude(), other.getSouthWest().getLatitude());
+        double minLon = Math.min(this.southWest.getLongitude(), other.getSouthWest().getLongitude());
+        double maxLat = Math.max(this.northEast.getLatitude(), other.getNorthEast().getLatitude());
+        double maxLon = Math.max(this.northEast.getLongitude(), other.getNorthEast().getLongitude());
+
+        return new BoundingBox(
+            new Point(minLat, minLon),
+            new Point(maxLat, maxLon)
+        );
+    }
+
+
 }
