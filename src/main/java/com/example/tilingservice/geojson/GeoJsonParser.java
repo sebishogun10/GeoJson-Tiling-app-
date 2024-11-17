@@ -19,19 +19,24 @@ public class GeoJsonParser implements Parser {
     public Shape parse(String geoJson) {
         try {
             JsonNode root = objectMapper.readTree(geoJson);
-            JsonNode geometry = root.path("geometry");
-            String type = geometry.path("type").asText();
+            
+            // Handle Feature type
+            if (root.has("type") && "Feature".equals(root.get("type").asText())) {
+                root = root.get("geometry");
+            }
+            
+            String type = root.get("type").asText();
 
             switch (type) {
                 case "Polygon":
-                    return parsePolygon(geometry.path("coordinates"));
+                    return parsePolygon(root.get("coordinates"));
                 case "MultiPolygon":
-                    return parseMultiPolygon(geometry.path("coordinates"));
+                    return parseMultiPolygon(root.get("coordinates"));
                 default:
                     throw new IllegalArgumentException("Unsupported geometry type: " + type);
             }
         } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid GeoJSON format", e);
+            throw new IllegalArgumentException("Invalid GeoJSON format: " + e.getMessage(), e);
         }
     }
 

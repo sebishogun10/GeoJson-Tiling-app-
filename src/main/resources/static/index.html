@@ -1,17 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8" />
     <title>Tile Viewer</title>
-    <!-- Leaflet CSS -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-    <!-- Tailwind CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
-      rel="stylesheet"
-    />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
     <style>
       #map {
         height: 800px;
@@ -21,6 +14,18 @@
         background: rgba(255, 255, 255, 0.8);
         backdrop-filter: blur(5px);
       }
+      .loader {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 2s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
     </style>
   </head>
   <body class="bg-gray-100">
@@ -29,21 +34,14 @@
         <h1 class="text-2xl font-bold mb-4">Tile Viewer</h1>
 
         <div id="loginSection" class="mb-4">
-          <button
-            onclick="login()"
-            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-          >
+          <button id="loginButton" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
             Login with Keycloak
           </button>
           <span id="loginStatus" class="ml-2"></span>
         </div>
 
         <div class="mb-4">
-          <textarea
-            id="geoJsonInput"
-            class="w-full h-32 p-2 border rounded"
-            placeholder="Enter GeoJSON here..."
-          >
+        <textarea id="geoJsonInput" class="w-full h-32 p-2 border rounded" placeholder="Enter GeoJSON here...">
 {
   "type": "Feature",
   "geometry": {
@@ -55,117 +53,155 @@
       [-2.2387, 53.4808],
       [-2.2487, 53.4808]
     ]]
-  }
-}</textarea
-          >
+  },
+  "properties": {}
+}
+        </textarea>
         </div>
 
-        <button
-          id="generateBtn"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          disabled
-        >
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label for="maxTileArea" class="block text-gray-700">Max Tile Area (sq meters):</label>
+            <input type="number" id="maxTileArea" class="w-full p-2 border rounded" value="1000.0" step="100">
+          </div>
+          <div>
+            <label for="minTileArea" class="block text-gray-700">Min Tile Area (sq meters):</label>
+            <input type="number" id="minTileArea" class="w-full p-2 border rounded" value="10.0" step="1">
+          </div>
+          <div>
+            <label for="coverageThreshold" class="block text-gray-700">Coverage Threshold (0-1):</label>
+            <input type="number" id="coverageThreshold" class="w-full p-2 border rounded" value="0.10" step="0.05" min="0" max="1">
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="includeBoundingBox" class="mr-2" checked>
+            <label for="includeBoundingBox" class="text-gray-700">Include Bounding Box</label>
+          </div>
+        </div>
+
+        <button id="generateBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" disabled>
           Generate Tiles
         </button>
       </div>
 
       <div class="relative bg-white rounded-lg shadow-lg">
         <div id="map"></div>
-
-        <div
-          id="loadingOverlay"
-          class="hidden loading-overlay absolute inset-0 flex items-center justify-center"
-        >
+        <div id="loadingOverlay" class="hidden loading-overlay absolute inset-0 flex items-center justify-center">
           <div class="text-center">
-            <div class="loader mb-2">Loading...</div>
-            <div id="progress" class="text-lg"></div>
+            <div class="loader mb-2"></div>
+            <div id="progress" class="text-lg">Processing tiles...</div>
           </div>
         </div>
       </div>
 
-      <div
-        id="stats"
-        class="fixed top-4 right-4 bg-white p-4 rounded-lg shadow-lg"
-      ></div>
+      <div id="stats" class="fixed top-4 right-4 bg-white p-4 rounded-lg shadow-lg"></div>
     </div>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Turf.js -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-    <!-- Leaflet.VectorGrid -->
     <script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.js"></script>
+    <script src="https://unpkg.com/keycloak-js@21.1.0/dist/keycloak.min.js"></script>
 
     <script>
-      let map, token;
-      let renderedFeatures = [];
-      let vectorGridLayer;
+      document.addEventListener("DOMContentLoaded", function () {
+        let map, token;
+        let renderedFeatures = [];
+        let vectorGridLayer;
+        const loginButton = document.getElementById("loginButton");
+        const loginStatus = document.getElementById("loginStatus");
+        const generateBtn = document.getElementById("generateBtn");
+        const loadingOverlay = document.getElementById("loadingOverlay");
+        const progress = document.getElementById("progress");
+        const stats = document.getElementById("stats");
 
-      function initMap() {
-        map = L.map("map").setView([53.4808, -2.2487], 13);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          maxZoom: 19,
-          attribution: "© OpenStreetMap contributors",
-        }).addTo(map);
-      }
+        function initMap() {
+          map = L.map("map").setView([53.4808, -2.2487], 13);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "© OpenStreetMap contributors",
+          }).addTo(map);
+        }
 
-      function login() {
-        const nonce = Math.random().toString(36);
-        localStorage.setItem("nonce", nonce);
+        const keycloak = new Keycloak({
+          url: "http://localhost:8180/",
+          realm: "polygon-tiling",
+          clientId: "tile-client"
+        });
 
-        window.location.href =
-          "http://localhost:8180/realms/polygon-tiling/protocol/openid-connect/auth" +
-          "?response_type=token" +
-          "&client_id=tile-client" +
-          "&redirect_uri=" +
-          encodeURIComponent(window.location.origin) +
-          "&scope=openid profile" +
-          "&nonce=" +
-          nonce;
-      }
+        keycloak.init({ onLoad: "check-sso", pkceMethod: "S256", flow: "standard" })
+          .then(function(authenticated) {
+            if (authenticated) {
+              token = keycloak.token;
+              loginStatus.textContent = "Logged in successfully";
+              generateBtn.disabled = false;
+              console.log("Authenticated");
+            } else {
+              loginStatus.textContent = "Please log in";
+              console.log("Not authenticated");
+            }
 
-      function checkToken() {
-        if (window.location.hash) {
-          const match = window.location.hash.match(/access_token=([^&]*)/);
-          if (match) {
-            token = match[1];
-            document.getElementById("loginStatus").textContent =
-              "Logged in successfully";
-            document.getElementById("generateBtn").disabled = false;
-            return true;
+            setInterval(() => {
+              keycloak.updateToken(60)
+                .then((refreshed) => {
+                  if (refreshed) {
+                    token = keycloak.token;
+                  }
+                })
+                .catch(() => {
+                  console.error("Failed to refresh token");
+                  keycloak.logout();
+                });
+            }, 60000);
+          })
+          .catch(function() {
+            console.error("Failed to initialize Keycloak");
+            alert("Failed to initialize authentication.");
+          });
+
+        loginButton.addEventListener("click", () => keycloak.login());
+
+        function startLoading() {
+          loadingOverlay.classList.remove("hidden");
+          progress.textContent = "Processing tiles...";
+          renderedFeatures = [];
+        }
+
+        function finishLoading() {
+          loadingOverlay.classList.add("hidden");
+          stats.textContent = `Total tiles: ${renderedFeatures.length}`;
+
+          if (renderedFeatures.length > 0) {
+            const bbox = turf.bbox({
+              type: "FeatureCollection",
+              features: renderedFeatures,
+            });
+            map.fitBounds([
+              [bbox[1], bbox[0]],
+              [bbox[3], bbox[2]]
+            ]);
           }
         }
-        return false;
-      }
 
-      function startLoading() {
-        document.getElementById("loadingOverlay").classList.remove("hidden");
-        renderedFeatures = [];
-      }
+        generateBtn.addEventListener("click", async () => {
+          let geoJson;
+          try {
+            geoJson = JSON.parse(document.getElementById("geoJsonInput").value);
+          } catch (e) {
+            alert("Invalid GeoJSON format");
+            return;
+          }
 
-      function finishLoading() {
-        document.getElementById("loadingOverlay").classList.add("hidden");
-        document.getElementById(
-          "stats"
-        ).textContent = `Total tiles: ${renderedFeatures.length}`;
+          const request = {
+            geoJson: geoJson,
+            maxTileArea: parseFloat(document.getElementById("maxTileArea").value),
+            minTileArea: parseFloat(document.getElementById("minTileArea").value),
+            coverageThreshold: parseFloat(document.getElementById("coverageThreshold").value),
+            includeBoundingBox: document.getElementById("includeBoundingBox").checked
+          };
 
-        if (renderedFeatures.length > 0) {
-          const bbox = turf.bbox({
-            type: "FeatureCollection",
-            features: renderedFeatures,
-          });
-          const southWest = L.latLng(bbox[1], bbox[0]);
-          const northEast = L.latLng(bbox[3], bbox[2]);
-          const bounds = L.latLngBounds(southWest, northEast);
-          map.fitBounds(bounds);
-        }
-      }
-
-      document
-        .getElementById("generateBtn")
-        .addEventListener("click", async () => {
-          const geoJson = document.getElementById("geoJsonInput").value;
-          if (!geoJson || !token) return;
+          if (!token) {
+            alert("Please log in first");
+            return;
+          }
 
           startLoading();
 
@@ -176,11 +212,12 @@
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
               },
-              body: geoJson,
+              body: JSON.stringify(request),
             });
 
             if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
+              const errorText = await response.text();
+              throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
             }
 
             const data = await response.json();
@@ -190,7 +227,6 @@
 
               if (vectorGridLayer) {
                 map.removeLayer(vectorGridLayer);
-                vectorGridLayer = null;
               }
 
               vectorGridLayer = L.vectorGrid
@@ -209,25 +245,17 @@
                 })
                 .addTo(map);
 
-              vectorGridLayer.on("click", function (e) {
-                console.log("Clicked on feature:", e.layer.properties);
-              });
-
               finishLoading();
             }
           } catch (error) {
             console.error("Error:", error);
-            document.getElementById(
-              "stats"
-            ).textContent = `Error: ${error.message}`;
-            document.getElementById("loadingOverlay").classList.add("hidden");
+            stats.textContent = `Error: ${error.message}`;
+            loadingOverlay.classList.add("hidden");
           }
         });
 
-      initMap();
-      if (!checkToken()) {
-        document.getElementById("loginStatus").textContent = "Please log in";
-      }
+        initMap();
+      });
     </script>
   </body>
 </html>

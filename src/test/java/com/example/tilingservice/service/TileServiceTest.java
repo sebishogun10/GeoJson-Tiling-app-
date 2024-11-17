@@ -11,34 +11,34 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.springframework.test.util.ReflectionTestUtils;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TileServiceTest {
-
     @Mock
     private Parser geoJsonParser;
-
+    
     @Mock
     private RTree rtree;
-
+    
     @Mock
     private RTreeSerializer rTreeSerializer;
-
+    
+    @Mock
+    private GeometryFactory geometryFactory;
+    
     private TileService tileService;
 
     @BeforeEach
     void setUp() {
         tileService = new TileService(geoJsonParser, rTreeSerializer);
-        ReflectionTestUtils.setField(tileService, "errorMargin", 0.01);
-        ReflectionTestUtils.setField(tileService, "maxRecursionDepth", 10);
+        ReflectionTestUtils.setField(tileService, "geometryFactory", geometryFactory);
     }
 
     @Test
@@ -54,7 +54,14 @@ class TileServiceTest {
         PolygonShape shape = new PolygonShape(points, new ArrayList<>());
         when(geoJsonParser.parse(anyString())).thenReturn(shape);
 
-        List<Tile> tiles = tileService.generateTiles("dummy-geojson");
+        // Call with default parameters
+        List<Tile> tiles = tileService.generateTiles(
+            "dummy-geojson",
+            1000.0,  // maxTileArea
+            10.0,    // minTileArea
+            0.10,    // coverageThreshold
+            true     // includeBoundingBox
+        );
 
         assertNotNull(tiles);
         assertFalse(tiles.isEmpty());
