@@ -39,8 +39,8 @@ public class TileService {
     private int maxRecursionDepth;
 
     // Adjusted constants for better tiling
-    private static final double MAX_TILE_AREA = 10000.0; // Maximum area before subdivision (in square meters)
-    private static final double MIN_TILE_AREA = 100.0;   // Minimum area for tiles (in square meters)
+    private static final double MAX_TILE_AREA = 1000.0; // Maximum area before subdivision (in square meters)
+    private static final double MIN_TILE_AREA = 10.0;   // Minimum area for tiles (in square meters)
     private static final double COVERAGE_THRESHOLD = 0.10;  // Lower threshold for better coverage
     private static final boolean INCLUDE_BOUNDING_BOX = true; // Include the overall bounding box
 

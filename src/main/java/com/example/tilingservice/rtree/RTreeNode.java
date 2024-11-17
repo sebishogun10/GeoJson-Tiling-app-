@@ -25,11 +25,7 @@ public class RTreeNode {
         this.boundingBox = null; // Will be updated when entries are added
     }
 
-    /**
-     * Inserts a tile into the R-tree.
-     *
-     * @param tile The tile to insert.
-     */
+
     public void insert(Tile tile) {
         if (isLeaf) {
             if (tiles.size() < MAX_ENTRIES) {
@@ -51,12 +47,7 @@ public class RTreeNode {
         }
     }
 
-    /**
-     * Searches for tiles within the specified bounding box.
-     *
-     * @param searchBox The bounding box to search within.
-     * @return A list of tiles that intersect with the search box.
-     */
+   
     public List<Tile> search(BoundingBox searchBox) {
         List<Tile> results = new ArrayList<>();
 
@@ -81,9 +72,7 @@ public class RTreeNode {
         return results;
     }
 
-    /**
-     * Updates the bounding box of the node based on its entries.
-     */
+  
     private void updateBoundingBox() {
         if (isLeaf) {
             // Leaf node: calculate bounding box from tiles
@@ -108,12 +97,7 @@ public class RTreeNode {
         }
     }
 
-    /**
-     * Chooses the best child node to insert a new bounding box into.
-     *
-     * @param box The bounding box of the new entry.
-     * @return The child node that requires the least enlargement of its bounding box.
-     */
+
     private RTreeNode chooseBestChild(BoundingBox box) {
         RTreeNode bestNode = null;
         double minIncrease = Double.MAX_VALUE;
@@ -129,13 +113,7 @@ public class RTreeNode {
         return bestNode != null ? bestNode : children.get(0);
     }
 
-    /**
-     * Calculates how much the bounding box would need to increase to include the new box.
-     *
-     * @param current The current bounding box.
-     * @param newBox  The new bounding box to include.
-     * @return The area increase required.
-     */
+
     private double calculateBoundingBoxIncrease(BoundingBox current, BoundingBox newBox) {
         if (current == null) return calculateArea(newBox);
 
@@ -146,12 +124,7 @@ public class RTreeNode {
         return enlargedArea - currentArea;
     }
 
-    /**
-     * Calculates the area of a bounding box.
-     *
-     * @param box The bounding box.
-     * @return The area of the bounding box.
-     */
+
     private double calculateArea(BoundingBox box) {
         if (box == null) return 0;
         double latDiff = box.getNorthEast().getLatitude() - box.getSouthWest().getLatitude();
@@ -222,13 +195,7 @@ public class RTreeNode {
         updateBoundingBox();
     }
 
-    /**
-     * Calculates the distance between the centers of two bounding boxes.
-     *
-     * @param box1 The first bounding box.
-     * @param box2 The second bounding box.
-     * @return The Euclidean distance between the centers.
-     */
+  
     private double calculateDistance(BoundingBox box1, BoundingBox box2) {
         Point center1 = calculateCenter(box1);
         Point center2 = calculateCenter(box2);
@@ -239,12 +206,7 @@ public class RTreeNode {
         return Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
     }
 
-    /**
-     * Calculates the center point of a bounding box.
-     *
-     * @param box The bounding box.
-     * @return The center point.
-     */
+
     private Point calculateCenter(BoundingBox box) {
         return new Point(
                 (box.getSouthWest().getLatitude() + box.getNorthEast().getLatitude()) / 2,
@@ -252,9 +214,7 @@ public class RTreeNode {
         );
     }
 
-    /**
-     * Splits an internal node into two new internal nodes.
-     */
+  
     private void splitInternalNode() {
         // Create two new internal nodes
         RTreeNode node1 = new RTreeNode();
