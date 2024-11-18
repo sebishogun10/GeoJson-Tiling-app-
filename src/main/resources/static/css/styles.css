@@ -67,3 +67,15 @@
 #controls-panel.authenticated {
     display: block;
 }
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+#input-methods {
+    display: block !important;
+}

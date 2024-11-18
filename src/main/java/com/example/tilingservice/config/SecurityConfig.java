@@ -26,11 +26,12 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/", 
-                    "/index.html", 
-                    "/css/**", 
+                    "/",
+                    "/index.html",
+                    "/css/**",
                     "/js/**",
-                    "/static/**", 
+                    "/static/**",
+                    "/favicon.ico",
                     "/silent-check-sso.html"
                 ).permitAll()
                 .requestMatchers("/ws/**", "/topic/**", "/app/**").permitAll()
