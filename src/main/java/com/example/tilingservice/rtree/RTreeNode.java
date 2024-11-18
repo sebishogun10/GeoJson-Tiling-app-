@@ -32,7 +32,7 @@ public class RTreeNode {
                 tiles.add(tile);
                 updateBoundingBox();
             } else {
-                // Split the leaf node
+                
                 splitLeafNode();
                 // After splitting, insert the tile into the appropriate child
                 RTreeNode bestChild = chooseBestChild(tile.getBoundingBox());
@@ -132,17 +132,14 @@ public class RTreeNode {
         return Math.abs(latDiff * lonDiff);
     }
 
-    /**
-     * Splits a leaf node into two new leaf nodes.
-     */
     private void splitLeafNode() {
-        // Create two new leaf nodes
+        
         RTreeNode leaf1 = new RTreeNode();
         RTreeNode leaf2 = new RTreeNode();
         leaf1.setLeaf(true);
         leaf2.setLeaf(true);
 
-        // Choose two seeds for the split
+        
         Tile seed1 = null, seed2 = null;
         double maxDistance = -1;
 
@@ -160,15 +157,15 @@ public class RTreeNode {
             }
         }
 
-        // Assign seeds to the new leaves
+        
         leaf1.getTiles().add(seed1);
         leaf2.getTiles().add(seed2);
 
-        // Remove seeds from the original list
+        
         tiles.remove(seed1);
         tiles.remove(seed2);
 
-        // Distribute remaining tiles
+        
         for (Tile tile : tiles) {
             double increaseLeaf1 = calculateBoundingBoxIncrease(leaf1.getBoundingBox(), tile.getBoundingBox());
             double increaseLeaf2 = calculateBoundingBoxIncrease(leaf2.getBoundingBox(), tile.getBoundingBox());
@@ -180,7 +177,7 @@ public class RTreeNode {
             }
         }
 
-        // Clear tiles from current node
+       
         tiles.clear();
 
         // Convert current node to an internal node
@@ -216,14 +213,13 @@ public class RTreeNode {
 
   
     private void splitInternalNode() {
-        // Create two new internal nodes
+        
         RTreeNode node1 = new RTreeNode();
         RTreeNode node2 = new RTreeNode();
         node1.setLeaf(false);
         node2.setLeaf(false);
 
-        // Choose two seeds for the split
-        RTreeNode seed1 = null, seed2 = null;
+                RTreeNode seed1 = null, seed2 = null;
         double maxDistance = -1;
 
         for (int i = 0; i < children.size(); i++) {
@@ -240,15 +236,15 @@ public class RTreeNode {
             }
         }
 
-        // Assign seeds to the new nodes
+        
         node1.getChildren().add(seed1);
         node2.getChildren().add(seed2);
 
-        // Remove seeds from the original list
+        
         children.remove(seed1);
         children.remove(seed2);
 
-        // Distribute remaining children
+        
         for (RTreeNode child : children) {
             double increaseNode1 = calculateBoundingBoxIncrease(node1.getBoundingBox(), child.getBoundingBox());
             double increaseNode2 = calculateBoundingBoxIncrease(node2.getBoundingBox(), child.getBoundingBox());
@@ -260,14 +256,14 @@ public class RTreeNode {
             }
         }
 
-        // Clear children from current node
+ 
         children.clear();
 
-        // Add new nodes as children
+ 
         children.add(node1);
         children.add(node2);
 
-        // Update bounding boxes
+ 
         node1.updateBoundingBox();
         node2.updateBoundingBox();
         updateBoundingBox();

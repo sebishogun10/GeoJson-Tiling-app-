@@ -31,7 +31,7 @@ public interface Tile {
         // Close the ring by adding the first point again
         coordinates[corners.size()] = coordinates[0];
         
-        // Create and return the polygon
+        
         org.locationtech.jts.geom.LinearRing ring = geometryFactory.createLinearRing(coordinates);
         return geometryFactory.createPolygon(ring);
     }

@@ -50,25 +50,24 @@ public class RectangleTile implements Tile {
         double midLat = (sw.getLatitude() + ne.getLatitude()) / 2;
         double midLon = (sw.getLongitude() + ne.getLongitude()) / 2;
 
-        // Southwest tile
+
         subtiles.add(new RectangleTile(new BoundingBox(
             new Point(sw.getLatitude(), sw.getLongitude()),
             new Point(midLat, midLon)
         )));
 
-        // Northwest tile
+
         subtiles.add(new RectangleTile(new BoundingBox(
             new Point(midLat, sw.getLongitude()),
             new Point(ne.getLatitude(), midLon)
         )));
 
-        // Northeast tile
+
         subtiles.add(new RectangleTile(new BoundingBox(
             new Point(midLat, midLon),
             new Point(ne.getLatitude(), ne.getLongitude())
         )));
 
-        // Southeast tile
         subtiles.add(new RectangleTile(new BoundingBox(
             new Point(sw.getLatitude(), midLon),
             new Point(midLat, ne.getLongitude())
@@ -100,7 +99,6 @@ public class RectangleTile implements Tile {
 
     @Override
     public Polygon toJtsPolygon(GeometryFactory geometryFactory) {
-        // Use the default implementation from the interface
         return createJtsPolygon(geometryFactory);
     }
 }

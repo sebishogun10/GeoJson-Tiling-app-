@@ -74,26 +74,16 @@ public class PolygonShape implements Shape {
         return boundingBox;
     }
 
-    /**
-     * Checks if this polygon has any holes
-     * @return true if the polygon has one or more holes, false otherwise
-     */
+
     public boolean hasHoles() {
         return holes != null && !holes.isEmpty();
     }
 
-    /**
-     * Gets the list of holes in this polygon
-     * @return List of holes, where each hole is a list of points
-     */
     public List<List<Point>> getHoles() {
         return holes;
     }
 
-    /**
-     * Gets the outer boundary points of the polygon
-     * @return List of points forming the outer boundary
-     */
+
     public List<Point> getOuterBoundary() {
         return outerBoundary;
     }
@@ -109,7 +99,7 @@ public class PolygonShape implements Shape {
         // Close the ring
         coordinates[outerBoundary.size()] = coordinates[0];
         
-        // Create the polygon ring
+        
         LinearRing ring = geometryFactory.createLinearRing(coordinates);
         
         // Handle holes

@@ -3,9 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <title>Tile Viewer</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body class="bg-gray-100">
@@ -16,16 +25,25 @@
           <h1 class="text-2xl font-bold">Tile Viewer</h1>
           <div id="loginSection" class="flex items-center">
             <div id="unauthenticated-buttons" class="hidden">
-              <button id="loginButton" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+              <button
+                id="loginButton"
+                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
                 Login
               </button>
-              <button id="registerButton" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ml-2">
+              <button
+                id="registerButton"
+                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ml-2"
+              >
                 Register
               </button>
             </div>
             <div id="authenticated-buttons" class="hidden">
               <span id="userInfo" class="mr-2 text-gray-700"></span>
-              <button id="logoutButton" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+              <button
+                id="logoutButton"
+                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              >
                 Logout
               </button>
             </div>
@@ -40,10 +58,16 @@
           <div class="flex justify-between items-center mb-2">
             <h2 class="text-lg font-semibold">Input Method</h2>
             <div class="flex space-x-2">
-              <button id="geoJsonTabBtn" class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 active-tab">
+              <button
+                id="geoJsonTabBtn"
+                class="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 active-tab"
+              >
                 GeoJSON Input
               </button>
-              <button id="drawTabBtn" class="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400">
+              <button
+                id="drawTabBtn"
+                class="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+              >
                 Draw on Map
               </button>
             </div>
@@ -51,7 +75,12 @@
 
           <!-- GeoJSON Input Section -->
           <div id="geoJsonInput-section" class="tab-content active">
-            <textarea id="geoJsonInput" class="w-full h-32 p-2 border rounded" placeholder="Enter GeoJSON here...">{
+            <textarea
+              id="geoJsonInput"
+              class="w-full h-32 p-2 border rounded"
+              placeholder="Enter GeoJSON here...(example provided below)"
+            >
+{
   "type": "Feature",
   "geometry": {
     "type": "Polygon",
@@ -64,17 +93,26 @@
     ]]
   },
   "properties": {}
-}</textarea>
+}</textarea
+            >
           </div>
 
           <!-- Draw Section -->
           <div id="draw-section" class="tab-content hidden">
-            <p class="text-gray-700 mb-2">Use the drawing tools to create a polygon on the map.</p>
+            <p class="text-gray-700 mb-2">
+              Use the drawing tools to create a polygon on the map.
+            </p>
             <div class="flex space-x-2">
-              <button id="startDrawingBtn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+              <button
+                id="startDrawingBtn"
+                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
                 Start Drawing
               </button>
-              <button id="clearDrawingBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+              <button
+                id="clearDrawingBtn"
+                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              >
                 Clear Drawing
               </button>
             </div>
@@ -86,31 +124,74 @@
       <div id="controls-panel" class="bg-white rounded-lg shadow-lg p-4 mb-4">
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <label for="maxTileArea" class="block text-gray-700">Max Tile Area (sq meters):</label>
-            <input type="number" id="maxTileArea" class="w-full p-2 border rounded" value="1000.0" step="100">
+            <label for="maxTileArea" class="block text-gray-700"
+              >Max Tile Area (sq meters):</label
+            >
+            <input
+              type="number"
+              id="maxTileArea"
+              class="w-full p-2 border rounded"
+              value="1000.0"
+              step="100"
+            />
           </div>
           <div>
-            <label for="minTileArea" class="block text-gray-700">Min Tile Area (sq meters):</label>
-            <input type="number" id="minTileArea" class="w-full p-2 border rounded" value="10.0" step="1">
+            <label for="minTileArea" class="block text-gray-700"
+              >Min Tile Area (sq meters):</label
+            >
+            <input
+              type="number"
+              id="minTileArea"
+              class="w-full p-2 border rounded"
+              value="10.0"
+              step="1"
+            />
           </div>
           <div>
-            <label for="coverageThreshold" class="block text-gray-700">Coverage Threshold (0-1):</label>
-            <input type="number" id="coverageThreshold" class="w-full p-2 border rounded" value="0.10" step="0.05" min="0" max="1">
+            <label for="coverageThreshold" class="block text-gray-700"
+              >Coverage Threshold (0-1):</label
+            >
+            <input
+              type="number"
+              id="coverageThreshold"
+              class="w-full p-2 border rounded"
+              value="0.10"
+              step="0.05"
+              min="0"
+              max="1"
+            />
           </div>
           <div class="flex items-center">
-            <input type="checkbox" id="includeBoundingBox" class="mr-2" checked>
-            <label for="includeBoundingBox" class="text-gray-700">Include Bounding Box</label>
+            <input
+              type="checkbox"
+              id="includeBoundingBox"
+              class="mr-2"
+              checked
+            />
+            <label for="includeBoundingBox" class="text-gray-700"
+              >Include Bounding Box</label
+            >
           </div>
         </div>
 
         <div class="flex space-x-4">
-          <button id="generateBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" disabled>
+          <button
+            id="generateBtn"
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            disabled
+          >
             Generate Tiles
           </button>
-          <button id="clearTilesBtn" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+          <button
+            id="clearTilesBtn"
+            class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          >
             Clear Tiles
           </button>
-          <button id="downloadTilesBtn" class="hidden bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+          <button
+            id="downloadTilesBtn"
+            class="hidden bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
             Download Tiles GeoJSON
           </button>
         </div>
@@ -122,7 +203,10 @@
           Click on the map to start drawing a polygon. Double-click to finish.
         </div>
         <div id="map"></div>
-        <div id="loadingOverlay" class="hidden loading-overlay absolute inset-0 flex items-center justify-center">
+        <div
+          id="loadingOverlay"
+          class="hidden loading-overlay absolute inset-0 flex items-center justify-center"
+        >
           <div class="bg-white p-6 rounded-lg shadow-lg text-center">
             <div class="loader mb-4"></div>
             <div id="progress" class="text-lg mb-3">Processing tiles...</div>
@@ -136,7 +220,10 @@
         </div>
       </div>
 
-      <div id="stats" class="fixed top-4 right-4 bg-white p-4 rounded-lg shadow-lg"></div>
+      <div
+        id="stats"
+        class="fixed top-4 right-4 bg-white p-4 rounded-lg shadow-lg"
+      ></div>
     </div>
 
     <!-- External Scripts -->
@@ -146,18 +233,15 @@
     <script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.js"></script>
     <script src="https://unpkg.com/keycloak-js@21.1.0/dist/keycloak.min.js"></script>
 
-    <!-- Our Modules -->
     <script type="module">
-      import { authManager } from '/js/auth.js';
-      import { mapManager } from '/js/map.js';
-      import { tileManager } from '/js/tiles.js';
-      import { UIManager } from '/js/ui.js';
+      import { authManager } from "/js/auth.js";
+      import { mapManager } from "/js/map.js";
+      import { tileManager } from "/js/tiles.js";
+      import { UIManager } from "/js/ui.js";
 
       document.addEventListener("DOMContentLoaded", async function () {
-        // Initialize map
         mapManager.initialize();
 
-        // Initialize UI manager
         const uiManager = new UIManager(mapManager, authManager, tileManager);
         uiManager.initialize();
 
@@ -179,7 +263,9 @@
           const layer = event.layer;
           mapManager.drawnItems.clearLayers();
           mapManager.drawnItems.addLayer(layer);
-          document.querySelector(".draw-instructions").classList.remove("active");
+          document
+            .querySelector(".draw-instructions")
+            .classList.remove("active");
         });
       });
     </script>

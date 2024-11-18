@@ -63,7 +63,7 @@ public class MultiPolygonShape implements Shape {
     @Override
     public Geometry toJtsGeometry(GeometryFactory geometryFactory) {
         try {
-            // Convert each polygon to a JTS Polygon
+            
             List<Polygon> jtsPolygons = new ArrayList<>();
             for (PolygonShape polygon : polygons) {
                 Geometry geom = polygon.toJtsGeometry(geometryFactory);
@@ -72,36 +72,26 @@ public class MultiPolygonShape implements Shape {
                 }
             }
 
-            // Create array of JTS Polygons
+            
             Polygon[] polygonArray = jtsPolygons.toArray(new Polygon[0]);
 
-            // Create and return MultiPolygon
+            
             return geometryFactory.createMultiPolygon(polygonArray);
         } catch (Exception e) {
             throw new RuntimeException("Failed to convert MultiPolygonShape to JTS Geometry: " + e.getMessage(), e);
         }
     }
 
-    /**
-     * Gets the list of constituent polygons
-     * @return List of PolygonShape objects
-     */
     public List<PolygonShape> getPolygons() {
         return polygons;
     }
 
-    /**
-     * Checks if this MultiPolygonShape has any polygons
-     * @return true if there are one or more polygons, false otherwise
-     */
+ 
     public boolean hasPolygons() {
         return polygons != null && !polygons.isEmpty();
     }
 
-    /**
-     * Gets the total number of holes across all polygons
-     * @return the total number of holes
-     */
+ 
     public int getTotalHolesCount() {
         return polygons.stream()
                 .filter(p -> p.hasHoles())

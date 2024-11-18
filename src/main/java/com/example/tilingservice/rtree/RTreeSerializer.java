@@ -16,8 +16,7 @@ public class RTreeSerializer {
 
     public RTreeSerializer() {
         this.objectMapper = new ObjectMapper();
-        // Configure ObjectMapper to handle RTree serialization
-        this.objectMapper.enableDefaultTyping(); // for handling polymorphic types
+        this.objectMapper.enableDefaultTyping(); 
     }
 
     public void serialize(RTree rtree) throws IOException {

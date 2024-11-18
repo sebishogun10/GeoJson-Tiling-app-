@@ -14,20 +14,35 @@ class AuthManager {
 
     try {
       const authenticated = await this.keycloak.init({
-        onLoad: "check-sso",
+        onLoad: "login-required",
         pkceMethod: "S256",
         flow: "standard",
       });
-
       this.token = this.keycloak.token;
       this.setupTokenRefresh();
       this.updateUI(authenticated);
-
+      this.setupEventListeners();
       return authenticated;
     } catch (error) {
       console.error("Failed to initialize Keycloak:", error);
       this.updateUI(false);
       return false;
+    }
+  }
+
+  setupEventListeners() {
+    const loginBtn = document.getElementById("loginButton");
+    const registerBtn = document.getElementById("registerButton");
+    const logoutBtn = document.getElementById("logoutButton");
+
+    if (loginBtn) {
+      loginBtn.addEventListener("click", () => this.login());
+    }
+    if (registerBtn) {
+      registerBtn.addEventListener("click", () => this.register());
+    }
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", () => this.logout());
     }
   }
 
@@ -86,21 +101,38 @@ class AuthManager {
   }
 
   login() {
-    this.keycloak.login();
+    console.log("Login button clicked");
+    if (this.keycloak) {
+      console.log("Keycloak instance exists, attempting login...");
+      this.keycloak
+        .login({
+          redirectUri: window.location.origin,
+          prompt: "login",
+        })
+        .catch((error) => {
+          console.error("Login failed:", error);
+        });
+    }
   }
 
   logout() {
-    this.keycloak.logout({ redirectUri: window.location.origin });
+    if (this.keycloak) {
+      this.keycloak.logout({
+        redirectUri: window.location.origin,
+      });
+    }
   }
 
   register() {
-    window.location.href = `${this.keycloak.authServerUrl}/realms/${
-      this.keycloak.realm
-    }/protocol/openid-connect/registrations?client_id=${
-      this.keycloak.clientId
-    }&response_type=code&redirect_uri=${encodeURIComponent(
-      window.location.origin
-    )}`;
+    if (this.keycloak) {
+      window.location.href = `${this.keycloak.authServerUrl}/realms/${
+        this.keycloak.realm
+      }/protocol/openid-connect/registrations?client_id=${
+        this.keycloak.clientId
+      }&response_type=code&redirect_uri=${encodeURIComponent(
+        window.location.origin
+      )}`;
+    }
   }
 
   getToken() {
@@ -112,4 +144,5 @@ class AuthManager {
   }
 }
 
-export const authManager = new AuthManager();
+window.authManager = new AuthManager(); // Make globally available
+export const authManager = window.authManager;
