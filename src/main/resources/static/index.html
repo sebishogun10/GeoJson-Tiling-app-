@@ -3,114 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <title>Tile Viewer</title>
+    <!-- External CSS -->
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
     <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+    />
+    <link
       href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
       rel="stylesheet"
     />
-    <style>
-      #map {
-        height: 800px;
-        width: 100%;
-      }
-      .loading-overlay {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(5px);
-      }
-      .loader {
-        border: 8px solid #f3f3f3;
-        border-top: 8px solid #3498db;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        animation: spin 2s linear infinite;
-      }
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-      .progress-bar {
-        width: 100%;
-        height: 20px;
-        background-color: #f0f0f0;
-        border-radius: 10px;
-        overflow: hidden;
-        margin-top: 10px;
-      }
-      .progress-bar-fill {
-        height: 100%;
-        background-color: #4caf50;
-        width: 0%;
-        transition: width 0.5s ease-in-out;
-      }
-      .stats-label {
-        margin-bottom: 5px;
-        font-weight: bold;
-      }
-    </style>
+    <!-- Our CSS -->
+    <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body class="bg-gray-100">
     <div class="container mx-auto p-4">
+      <!-- Header and Authentication Section -->
       <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
-        <h1 class="text-2xl font-bold mb-4">Tile Viewer</h1>
-
-        <div id="loginSection" class="mb-4">
-          <div id="unauthenticated-buttons" class="hidden">
-            <button
-              id="loginButton"
-              class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-            >
-              Login
-            </button>
-            <button
-              id="registerButton"
-              class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ml-2"
-            >
-              Register
-            </button>
+        <div class="flex justify-between items-center">
+          <h1 class="text-2xl font-bold">Tile Viewer</h1>
+          <div id="loginSection" class="flex items-center">
+            <div id="unauthenticated-buttons" class="hidden">
+              <button
+                id="loginButton"
+                class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                Login
+              </button>
+              <button
+                id="registerButton"
+                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ml-2"
+              >
+                Register
+              </button>
+            </div>
+            <div id="authenticated-buttons" class="hidden">
+              <span id="userInfo" class="mr-2 text-gray-700"></span>
+              <button
+                id="logoutButton"
+                class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              >
+                Logout
+              </button>
+            </div>
+            <span id="loginStatus" class="ml-2"></span>
           </div>
-          <div id="authenticated-buttons" class="hidden">
-            <span id="userInfo" class="mr-2 text-gray-700"></span>
-            <button
-              id="logoutButton"
-              class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-            >
-              Logout
-            </button>
-          </div>
-          <span id="loginStatus" class="ml-2"></span>
         </div>
+      </div>
 
-        <div class="mb-4">
-          <textarea
-            id="geoJsonInput"
-            class="w-full h-32 p-2 border rounded"
-            placeholder="Enter GeoJSON here..."
-          >
-{
-  "type": "Feature",
-  "geometry": {
-    "type": "Polygon",
-    "coordinates": [[
-      [-2.2487, 53.4808],
-      [-2.2487, 53.4858],
-      [-2.2387, 53.4858],
-      [-2.2387, 53.4808],
-      [-2.2487, 53.4808]
-    ]]
-  },
-  "properties": {}
-}</textarea
-          >
-        </div>
-
+      <!-- Controls Panel (only visible when authenticated) -->
+      <div id="controls-panel" class="bg-white rounded-lg shadow-lg p-4 mb-4">
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label for="maxTileArea" class="block text-gray-700"
@@ -163,16 +108,33 @@
           </div>
         </div>
 
-        <button
-          id="generateBtn"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          disabled
-        >
-          Generate Tiles
-        </button>
+        <div class="flex space-x-4">
+          <button
+            id="drawButton"
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Draw Polygon
+          </button>
+          <button
+            id="clearButton"
+            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+          >
+            Clear Drawing
+          </button>
+          <button
+            id="generateBtn"
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
+            Generate Tiles
+          </button>
+        </div>
       </div>
 
+      <!-- Map Container -->
       <div class="relative bg-white rounded-lg shadow-lg">
+        <div class="draw-instructions bg-white p-2 rounded shadow">
+          Click on the map to start drawing a polygon. Double-click to finish.
+        </div>
         <div id="map"></div>
         <div
           id="loadingOverlay"
@@ -197,253 +159,80 @@
       ></div>
     </div>
 
+    <!-- External Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <script src="https://unpkg.com/leaflet.vectorgrid@1.3.0/dist/Leaflet.VectorGrid.bundled.js"></script>
     <script src="https://unpkg.com/keycloak-js@21.1.0/dist/keycloak.min.js"></script>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        let map, token;
-        let renderedFeatures = [];
-        let vectorGridLayer;
-        let startTime;
-        let tileCount = 0;
+    <!-- Our Modules -->
+    <script type="module">
+      import { authManager } from "./js/auth.js";
+      import { mapManager } from "./js/map.js";
+      import { tileManager } from "./js/tiles.js";
 
-        const loginButton = document.getElementById("loginButton");
-        const loginStatus = document.getElementById("loginStatus");
-        const generateBtn = document.getElementById("generateBtn");
-        const loadingOverlay = document.getElementById("loadingOverlay");
-        const progress = document.getElementById("progress");
-        const stats = document.getElementById("stats");
+      document.addEventListener("DOMContentLoaded", async function () {
+        // Initialize map
+        mapManager.initialize();
 
-        function initMap() {
-          map = L.map("map").setView([53.4808, -2.2487], 13);
-          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            maxZoom: 19,
-            attribution: "© OpenStreetMap contributors",
-          }).addTo(map);
-        }
+        // Initialize auth with callback for status changes
+        authManager.onAuthStatusChange = (authenticated) => {
+          document.getElementById("drawButton").disabled = !authenticated;
+          document.getElementById("clearButton").disabled = !authenticated;
+          document.getElementById("generateBtn").disabled = !authenticated;
+        };
 
-        const keycloak = new Keycloak({
-          url: "http://localhost:8180/",
-          realm: "polygon-tiling",
-          clientId: "tile-client",
-        });
+        await authManager.initialize();
 
-        function updateAuthUI(authenticated) {
-          const unauthenticatedButtons = document.getElementById(
-            "unauthenticated-buttons"
-          );
-          const authenticatedButtons = document.getElementById(
-            "authenticated-buttons"
-          );
-          const userInfo = document.getElementById("userInfo");
-
-          if (authenticated) {
-            unauthenticatedButtons.classList.add("hidden");
-            authenticatedButtons.classList.remove("hidden");
-            generateBtn.disabled = false;
-
-            const username =
-              keycloak.tokenParsed.preferred_username ||
-              keycloak.tokenParsed.email ||
-              "User";
-            userInfo.textContent = `Welcome, ${username}`;
-            loginStatus.textContent = "✓ Authenticated";
-            loginStatus.classList.add("text-green-600");
-          } else {
-            unauthenticatedButtons.classList.remove("hidden");
-            authenticatedButtons.classList.add("hidden");
-            generateBtn.disabled = true;
-            userInfo.textContent = "";
-            loginStatus.textContent = "Please log in";
-            loginStatus.classList.remove("text-green-600");
-          }
-        }
-
-        keycloak
-          .init({
-            onLoad: "check-sso",
-            pkceMethod: "S256",
-            flow: "standard",
-          })
-          .then(function (authenticated) {
-            token = keycloak.token;
-            updateAuthUI(authenticated);
-
-            if (authenticated) {
-              console.log("Authenticated");
-            } else {
-              console.log("Not authenticated");
-            }
-
-            setInterval(() => {
-              keycloak
-                .updateToken(60)
-                .then((refreshed) => {
-                  if (refreshed) {
-                    token = keycloak.token;
-                  }
-                })
-                .catch(() => {
-                  console.error("Failed to refresh token");
-                  updateAuthUI(false);
-                  keycloak.logout();
-                });
-            }, 60000);
-          })
-          .catch(function () {
-            console.error("Failed to initialize Keycloak");
-            alert("Failed to initialize authentication.");
-            updateAuthUI(false);
-          });
+        // Set up event listeners
         document
-          .getElementById("logoutButton")
-          .addEventListener("click", () => {
-            keycloak.logout({ redirectUri: window.location.origin });
-          });
-
-        loginButton.addEventListener("click", () => keycloak.login());
-
+          .getElementById("loginButton")
+          .addEventListener("click", () => authManager.login());
         document
           .getElementById("registerButton")
-          .addEventListener("click", () => {
-            window.location.href = `${keycloak.authServerUrl}/realms/${
-              keycloak.realm
-            }/protocol/openid-connect/registrations?client_id=${
-              keycloak.clientId
-            }&response_type=code&redirect_uri=${encodeURIComponent(
-              window.location.origin
-            )}`;
-          });
+          .addEventListener("click", () => authManager.register());
+        document
+          .getElementById("logoutButton")
+          .addEventListener("click", () => authManager.logout());
 
-        function updateProgress(processed, total) {
-          const percentage = (processed / total) * 100;
-          const progressBarFill = document.getElementById("progressBarFill");
-          const tilesGenerated = document.getElementById("tilesGenerated");
-          const timeEstimate = document.getElementById("timeEstimate");
-
-          progressBarFill.style.width = `${percentage}%`;
-          tilesGenerated.textContent = processed;
-
-          if (!startTime) startTime = Date.now();
-          const elapsed = (Date.now() - startTime) / 1000;
-          const rate = processed / elapsed;
-          const remaining = (total - processed) / rate;
-
-          timeEstimate.textContent = `Estimated time remaining: ${Math.round(
-            remaining
-          )}s`;
-        }
-
-        function startLoading() {
-          loadingOverlay.classList.remove("hidden");
-          startTime = Date.now();
-          tileCount = 0;
-          updateProgress(0, 100);
-        }
-
-        function finishLoading() {
-          loadingOverlay.classList.add("hidden");
-          stats.textContent = `Total tiles: ${renderedFeatures.length}`;
-
-          if (renderedFeatures.length > 0) {
-            const bbox = turf.bbox({
-              type: "FeatureCollection",
-              features: renderedFeatures,
-            });
-            map.fitBounds([
-              [bbox[1], bbox[0]],
-              [bbox[3], bbox[2]],
-            ]);
-          }
-        }
-
-        generateBtn.addEventListener("click", async () => {
-          let geoJson;
-          try {
-            geoJson = JSON.parse(document.getElementById("geoJsonInput").value);
-          } catch (e) {
-            alert("Invalid GeoJSON format");
-            return;
-          }
-
-          const requestData = {
-            geoJson: geoJson,
-            maxTileArea: parseFloat(
-              document.getElementById("maxTileArea").value
-            ),
-            minTileArea: parseFloat(
-              document.getElementById("minTileArea").value
-            ),
-            coverageThreshold: parseFloat(
-              document.getElementById("coverageThreshold").value
-            ),
-            includeBoundingBox:
-              document.getElementById("includeBoundingBox").checked,
-          };
-
-          if (!token) {
-            alert("Please log in first");
-            return;
-          }
-
-          startLoading();
-
-          try {
-            const response = await fetch("/api/v1/tiles", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify(requestData),
-            });
-
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(
-                `HTTP error! status: ${response.status}, message: ${errorText}`
-              );
-            }
-
-            const data = await response.json();
-
-            if (data && data.features) {
-              renderedFeatures = data.features;
-              updateProgress(renderedFeatures.length, renderedFeatures.length);
-
-              if (vectorGridLayer) {
-                map.removeLayer(vectorGridLayer);
-              }
-
-              vectorGridLayer = L.vectorGrid
-                .slicer(data, {
-                  rendererFactory: L.canvas.tile,
-                  vectorTileLayerStyles: {
-                    sliced: {
-                      weight: 1,
-                      color: "#FF4444",
-                      fillColor: "#FF4444",
-                      fillOpacity: 0.2,
-                    },
-                  },
-                  interactive: true,
-                  maxZoom: 19,
-                })
-                .addTo(map);
-
-              finishLoading();
-            }
-          } catch (error) {
-            console.error("Error:", error);
-            stats.textContent = `Error: ${error.message}`;
-            loadingOverlay.classList.add("hidden");
-          }
+        document.getElementById("drawButton").addEventListener("click", () => {
+          mapManager.enableDrawing();
         });
 
-        initMap();
+        document.getElementById("clearButton").addEventListener("click", () => {
+          mapManager.clearDrawings();
+        });
+
+        document
+          .getElementById("generateBtn")
+          .addEventListener("click", async () => {
+            const drawnGeoJson = mapManager.getDrawnPolygon();
+            if (!drawnGeoJson) {
+              alert("Please draw a polygon first");
+              return;
+            }
+
+            try {
+              const tilesData = await tileManager.generateTiles(
+                drawnGeoJson,
+                authManager.getToken()
+              );
+              mapManager.displayTiles(tilesData);
+            } catch (error) {
+              alert("Error generating tiles: " + error.message);
+            }
+          });
+
+        // Handle map drawing events
+        mapManager.map.on(L.Draw.Event.CREATED, (event) => {
+          const layer = event.layer;
+          mapManager.drawnItems.clearLayers();
+          mapManager.drawnItems.addLayer(layer);
+          document
+            .querySelector(".draw-instructions")
+            .classList.remove("active");
+        });
       });
     </script>
   </body>
