@@ -54,19 +54,15 @@ public class TileService {
         this.coverageThreshold = coverageThreshold;
         this.includeBoundingBox = includeBoundingBox;
         
+        log.info("Generating tiles with parameters: maxTileArea={}, minTileArea={}, coverageThreshold={}, includeBoundingBox={}",
+                maxTileArea, minTileArea, coverageThreshold, includeBoundingBox);
+
         Shape shape = geoJsonParser.parse(geoJson);
         List<Tile> tiles = new ArrayList<>();
 
         if (includeBoundingBox) {
             Tile boundingBoxTile = TileFactory.createInitialTile(shape.getBoundingBox());
             tiles.add(boundingBoxTile);
-        }
-
-        List<Tile> existingTiles = rtree.search(shape.getBoundingBox());
-        if (!existingTiles.isEmpty()) {
-            log.info("Found {} existing tiles for the requested area", existingTiles.size());
-            tiles.addAll(existingTiles);
-            return tiles;
         }
 
         Tile initialTile = TileFactory.createInitialTile(shape.getBoundingBox());
@@ -82,19 +78,13 @@ public class TileService {
             processTile(initialTile, shape, tiles, 0);
         }
 
-        tiles.forEach(rtree::insert);
-        try {
-            rtreeSerializer.serialize(rtree);
-            log.info("Persisted {} new tiles to storage", tiles.size());
-        } catch (IOException e) {
-            log.error("Failed to persist RTree: {}", e.getMessage());
-        }
-
+        log.info("Generated {} tiles", tiles.size());
         return tiles;
     }
 
     private void processTile(Tile tile, Shape shape, List<Tile> results, int depth) {
         double tileAreaInMeters = GeometryUtils.calculateAreaInMeters(tile.getBoundingBox());
+        log.debug("Processing tile at depth {} with area {} sq meters", depth, tileAreaInMeters);
 
         if (!tile.getBoundingBox().intersects(shape.getBoundingBox())) {
             return;
@@ -113,6 +103,8 @@ public class TileService {
             double intersectionArea = intersection.getArea();
             double tileArea = tileGeometry.getArea();
             double coverageRatio = intersectionArea / tileArea;
+
+            log.debug("Tile coverage ratio: {}", coverageRatio);
 
             if (tileAreaInMeters > maxTileArea && depth < 15) {
                 for (Tile subtile : tile.subdivide()) {

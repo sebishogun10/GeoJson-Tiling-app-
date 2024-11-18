@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Silent SSO Check</title>
+  </head>
+  <body>
+    <script src="https://unpkg.com/keycloak-js@21.1.0/dist/keycloak.min.js"></script>
+    <script>
+      parent.postMessage(location.href, location.origin);
+    </script>
+  </body>
+</html>
